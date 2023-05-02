@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Record Voice</title>
+        <style>
+        button {
+            background-color: #007bff;
+            color: #fff;
+            font-size: 20px;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0062cc;
+        }
+    </style>
+<!--    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>-->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+ $(document).ready(function() {
+    var recording = false;
+    var chunks = [];
+    var mediaRecorder;
+
+    $('#record').click(function() {
+        if (!recording) {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    recording = true;
+                    chunks = [];
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = function(e) {
+                        chunks.push(e.data);
+                    };
+                    mediaRecorder.onstop = function() {
+                        var blob = new Blob(chunks, { type: 'audio/wav' });
+                        var url = URL.createObjectURL(blob);
+                        $('#audio').attr('src', url);
+
+                        var formData = new FormData();
+                        formData.append('audio', blob, 'recording.wav');
+                        $.ajax({
+                            url: '/save_audio',
+                            type: 'POST',
+                            data: formData,
+                            contentType: false,
+                            processData: false,
+                            success: function() {
+                                console.log('Audio saved successfully');
+                            },
+                            error: function() {
+                                console.log('Failed to save audio');
+                            }
+                        });
+                    };
+                    mediaRecorder.start();
+                    $('#record').html('Stop Recording');
+                })
+                .catch(function(err) {
+                    console.log('Failed to get user media:', err);
+                });
+        } else {
+            recording = false;
+            mediaRecorder.stop();
+            $('#record').html('Start Recording');
+        }
+    });
+});
+    </script>
+</head>
+<body>
+    <h1>Record Voice</h1>
+    <p>Click the button below to start recording:</p>
+    <button id="record">Start Recording</button>
+    <audio id="audio" controls></audio>
+</body>
+</html>
